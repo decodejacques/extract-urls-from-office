@@ -1,3 +1,3 @@
 npm install
 
-node index.js path_to_file
+node index.js
