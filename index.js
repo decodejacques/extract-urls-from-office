@@ -1,3 +1,4 @@
+const path = require("path")
 const fs = require("fs")
 const unzipper = require("unzipper")
 const { resolve } = require("path")
@@ -15,13 +16,13 @@ async function getFiles(dir) {
   )
   return Array.prototype.concat(...files)
 }
-var myArgs = process.argv.slice(2)
-let main = async () => {
+
+let processOfficeFile = async (filePath) => {
   let allUrls = new Set()
   fs.rmdirSync(`${__dirname}/temp`, { recursive: true })
   fs.mkdirSync(`${__dirname}/temp`)
   await fs
-    .createReadStream(myArgs[0])
+    .createReadStream(filePath)
     .pipe(unzipper.Extract({ path: `${__dirname}/temp` }))
     .promise()
   let files = await getFiles(`${__dirname}/temp`)
@@ -44,6 +45,22 @@ let main = async () => {
       !/http:\/\/image[0-9]*\./.test(x) &&
       !/w3\.org.*XMLSchema/.test(x)
   )
-  console.log(arr.join("\n"))
+  return "\n\n===== " + path.parse(filePath).base + "\n" + arr.join("\n")
 }
-main()
+let processZip = async () => {
+  fs.rmdirSync(`${__dirname}/temp2`, { recursive: true })
+  fs.mkdirSync(`${__dirname}/temp2`)
+  await fs
+    .createReadStream(`${__dirname}/input.zip`)
+    .pipe(unzipper.Extract({ path: `${__dirname}/temp2` }))
+    .promise()
+  let files = await getFiles(`${__dirname}/temp2`)
+  let officeFiles = files.filter((f) => f.includes(".pptx") || f.includes(".docx"))
+  let ret = ""
+  for (let i = 0; i < officeFiles.length; i++) {
+    ret += await processOfficeFile(officeFiles[i])
+  }
+  fs.writeFileSync(`${__dirname}/output.txt`, ret)
+}
+
+processZip()
